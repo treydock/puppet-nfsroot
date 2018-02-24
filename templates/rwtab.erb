@@ -1,0 +1,22 @@
+######### Managed by Puppet #########
+# <%= scope['settings::server'] %>:<%= @__file__.gsub(/\/environments\/([a-zA-Z0-9_\-]+)\//, "/environments/$::environment/") %>
+
+<% if ! @_rwtabs.empty? -%>
+<% if @_rwtabs['dirs'] -%>
+<% @_rwtabs['dirs'].each do |dir| -%>
+dirs	<%= dir %>
+<% end -%>
+<% end -%>
+
+<% if @_rwtabs['empty'] -%>
+<% @_rwtabs['empty'].each do |empty| -%>
+empty	<%= empty %>
+<% end -%>
+<% end -%>
+
+<% if @_rwtabs['files'] -%>
+<% @_rwtabs['files'].each do |file| -%>
+files	<%= file %>
+<% end -%>
+<% end -%>
+<% end -%>

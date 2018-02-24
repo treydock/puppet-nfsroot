@@ -1,0 +1,30 @@
+#!/bin/bash
+#### File managed by Puppet ####
+# <%= scope['settings::server'] %>:<%= @__file__.gsub(/\/environments\/([a-zA-Z0-9_\-]+)\//, "/environments/$::environment/") %>
+
+
+. /etc/init.d/functions
+
+PARTITION_SCHEMA_DIR=<%= @data_dir %>/partition-schemas
+PARTITION_SCHEMA=$(/opt/puppetlabs/bin/facter osc_partition_schema)
+if [ "x${PARTITION_SCHEMA}" = "x" ]; then
+  PARTITION_SCHEMA=default
+fi
+PARTITION_SCHEMA_PATH=${PARTITION_SCHEMA_DIR}/${PARTITION_SCHEMA}
+PARTITION_WAIT_PATH=${PARTITION_SCHEMA_DIR}/${PARTITION_SCHEMA}-wait
+BUILD=$(<%= @_foreman_host_param_script_path %> --config <%= @_foreman_host_param_conf_path %> get ${HOSTNAME} <%= @foreman_build_param %>)
+
+# Only read this once.
+#[ -z "${cmdline}" ] && cmdline=$(cat /proc/cmdline)
+
+#if strstr "$cmdline" readonlyroot && strstr "$cmdline" "build=true" ; then
+if [ "x${BUILD}" = "xtrue" ]; then
+        echo "Executing partition schema: ${PARTITION_SCHEMA_PATH}"
+        $PARTITION_SCHEMA_PATH
+
+        echo "Notify Foreman that host is built"
+        <%= @_foreman_host_param_script_path %> --config <%= @_foreman_host_param_conf_path %> set ${HOSTNAME} <%= @foreman_build_param %> false
+else
+        echo "Executing partition wait: ${PARTITION_WAIT_PATH}"
+        $PARTITION_WAIT_PATH
+fi

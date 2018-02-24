@@ -1,0 +1,36 @@
+#!/bin/bash
+#### File managed by Puppet ####
+# <%= scope['settings::server'] %>:<%= @__file__.gsub(/\/environments\/([a-zA-Z0-9_\-]+)\//, "/environments/$::environment/") %>
+
+
+wait() {
+  path=$1
+  count=0
+
+  while [ ! -L $path ]; do
+    # Only wait 10 seconds then move on
+    if ((count > 10)); then
+      break
+    fi
+    ((count++))
+    sleep 1
+  done
+}
+
+<% @physical_volumes.each do |pv| -%>
+echo "Activate physical volume <%= pv %>"
+pvscan --cache --activate ay <%= pv %>
+<% end -%>
+
+<% @volume_groups.keys.sort.each do |volume_group| -%>
+if [ ! -d /dev/<%= volume_group %> ]; then
+  echo "Activate volume group <%= volume_group %>"
+  vgchange --activate y <%= volume_group %>
+fi
+<% end -%>
+
+# Wait for /dev/disk/by-label to be present
+<% @logical_volumes.sort_by { |k,v| v['order'] }.each do |name,lv| -%>
+echo "Waiting for /dev/disk/by-label/<%= lv['label'] %>"
+wait /dev/disk/by-label/<%= lv['label'] %>
+<% end -%>

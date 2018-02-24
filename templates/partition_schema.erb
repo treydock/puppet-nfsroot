@@ -1,0 +1,70 @@
+#!/bin/bash
+#### File managed by Puppet ####
+# <%= scope['settings::server'] %>:<%= @__file__.gsub(/\/environments\/([a-zA-Z0-9_\-]+)\//, "/environments/$::environment/") %>
+
+
+# Turn off swap as seems to get activated very early in boot process
+swapoff --all
+
+# Remove logical volumes
+for n in `lvs -o lv_path --noheadings`; do
+  echo "Removing LV ${n}"
+  lvremove --autobackup n --force $n
+done
+# Remove volume groups
+for n in `vgs -o vg_name --noheading`; do
+  echo "Removing VG ${n}"
+  vgremove --force $n
+done
+# Remove physical volumes
+for n in `pvs -o name --noheading`; do
+  echo "Removing PV ${n}"
+  pvremove --force $n
+done
+
+<% @disks.each do |disk| -%>
+# Empty partition table
+sgdisk --zap-all <%= disk %>
+parted --align optimal --script <%= disk %> -- mklabel gpt
+# Setup single partition
+parted --align optimal --script <%= disk %> -- mkpart primary 0% 100%
+parted --script <%= disk %> -- set 1 lvm on
+udevadm settle --exit-if-exists=<%= disk %>1
+<% end -%>
+<% @physical_volumes.each do |pv| -%>
+echo "Creating PV <%= pv %>"
+pvcreate --yes <%= pv %>
+<% end -%>
+<% @volume_groups.keys.sort.each do |volume_group| -%>
+<% vg = @volume_groups[volume_group] -%>
+echo "Creating VG <%= volume_group %>"
+vgcreate --yes --autobackup n <%= volume_group %> <%= vg['pv'] %>
+<% end -%>
+<% @logical_volumes.sort_by { |k,v| v['order'] }.each do |name,lv| -%>
+<% dev = "/dev/#{lv['vg']}/#{name}" -%>
+<% if lv['size'] 
+     size = "--size #{lv['size']}"
+   elsif lv['extents']
+     size = "--extents #{lv['extents']}"
+   end
+-%>
+echo "Creating LV <%= name %>"
+lvcreate --yes -Wy --autobackup n --zero y <%= size %> --name <%= name %> <%= lv['vg'] %>
+<% if lv['fs_type'] == 'swap' -%>
+mkswap -L <%= lv['label'] %> <%= dev %>
+<% else -%>
+mkfs -t <%= lv['fs_type'] %> <%= dev %>
+<% end -%>
+<% if lv['fs_type'] == 'xfs' -%>
+xfs_admin -L <%= lv['label'] %> <%= dev %>
+<% elsif lv['fs_type'] == 'ext4' -%>
+e2label <%= dev %> <%= lv['label'] %>
+<% end -%>
+<% end -%>
+
+# Force /dev/disk/by-label to be present
+udevadm trigger
+<%= @_wait_path %>
+
+# Force swap back on
+swapon --all

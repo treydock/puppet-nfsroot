@@ -1,0 +1,18 @@
+#### File managed by Puppet ####
+# <%= scope['settings::server'] %>:<%= @__file__.gsub(/\/environments\/([a-zA-Z0-9_\-]+)\//, "/environments/$::environment/") %>
+
+[Unit]
+Description=Partition local disk
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=systemd-remount-fs.service local-fs-pre.target swap.target rhel-readonly.service systemd-tmpfiles-setup.service local-fs.target
+After=lvm2-monitor.service
+
+[Service]
+ExecStart=<%= @_osc_partition_path %>
+Type=oneshot
+TimeoutSec=300
+RemainAfterExit=yes
+
+[Install]
+WantedBy=local-fs-pre.target

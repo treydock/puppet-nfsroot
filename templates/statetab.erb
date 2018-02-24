@@ -1,0 +1,18 @@
+######### Managed by Puppet #########
+# <%= scope['settings::server'] %>:<%= @__file__.gsub(/\/environments\/([a-zA-Z0-9_\-]+)\//, "/environments/$::environment/") %>
+
+#
+# A list of paths which should be bind-mounted from a
+# partition dedicated to persistent data
+#
+# See $STATE_LABEL in /etc/sysconfig/readonly-root
+#
+# Examples: 
+#
+#   /root
+#   /etc/ssh
+#   /var/spool/mail
+#
+<% @_statetabs.each do |statetab| -%>
+<%= statetab %>
+<% end -%>

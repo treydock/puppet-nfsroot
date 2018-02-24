@@ -1,0 +1,26 @@
+#### File managed by Puppet ####
+# <%= scope['settings::server'] %>:<%= @__file__.gsub(/\/environments\/([a-zA-Z0-9_\-]+)\//, "/environments/$::environment/") %>
+
+# Set to 'yes' to mount the system filesystems read-only.
+READONLY=no
+# Set to 'yes' to mount various temporary state as either tmpfs
+# or on the block device labelled RW_LABEL. Implied by READONLY
+TEMPORARY_STATE=no
+# Place to put a tmpfs for temporary scratch writable space
+RW_MOUNT=<%= @rw_mount %>
+# Label on local filesystem which can be used for temporary scratch space
+RW_LABEL=<%= @rw_label %>
+# Options to use for temporary mount
+RW_OPTIONS=<%= @rw_options %>
+# Label for partition with persistent data
+STATE_LABEL=<%= @state_label %>
+# Where to mount to the persistent data
+STATE_MOUNT=<%= @state_mount %>
+# Options to use for persistent mount
+STATE_OPTIONS=<%= @state_options %>
+<% if scope.function_versioncmp([@operatingsystemrelease, '7.0']) >= 0 -%>
+# NFS server to use for persistent data?
+CLIENTSTATE=
+# Use slave bind-mounts
+SLAVE_MOUNTS=yes
+<% end -%>
