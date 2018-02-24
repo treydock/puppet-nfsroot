@@ -4,7 +4,8 @@ import argparse
 import os
 import sys
 import yaml
-from osc.foreman_api import ForemanAPI
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from foreman_api import ForemanAPI
 
 # For testing
 import unittest
@@ -186,7 +187,7 @@ def test_params(args, parser, api):
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(dest='mode')
-    parser.add_argument('--config', default='/opt/osc/etc/foreman.yaml')
+    parser.add_argument('--config', default='/usr/local/etc/foreman.yaml')
     parser_get = subparsers.add_parser('get')
     parser_set = subparsers.add_parser('set')
     parser_list = subparsers.add_parser('list')

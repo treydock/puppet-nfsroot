@@ -58,9 +58,9 @@ describe 'nfsroot::partition_schema' do
       end
 
       it 'should have valid config content' do
-        content = catalogue.resource('file', '/opt/osc/partition-schemas/default').send(:parameters)[:content]
+        content = catalogue.resource('file', '/usr/local/partition-schemas/default').send(:parameters)[:content]
         puts content
-        verify_contents(catalogue, '/opt/osc/partition-schemas/default', [
+        verify_contents(catalogue, '/usr/local/partition-schemas/default', [
           'pvcreate --yes /dev/sda',
           #'echo "Creating VG vg0"'
           'vgcreate --yes --autobackup n vg0 /dev/sda',
@@ -80,7 +80,7 @@ describe 'nfsroot::partition_schema' do
       end
 
       it 'should schema' do
-        is_expected.to contain_file('/opt/osc/partition-schemas/default').with({
+        is_expected.to contain_file('/usr/local/partition-schemas/default').with({
           :ensure => 'file',
           :owner  => 'root',
           :group  => 'root',

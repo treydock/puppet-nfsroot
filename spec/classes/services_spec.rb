@@ -12,10 +12,6 @@ describe 'nfsroot::services' do
     context "on #{os}" do
       let(:facts) do
         facts.merge({
-          :concat_basedir => '/dne',
-          :hostgroup      => 'base/owens/login',
-          :fqdn           => 'owens-login01.hpc.osc.edu',
-          :cluster        => 'owens',
           :nfsroot        => true,
           :nfsroot_ro     => true,
         })

@@ -9,5 +9,3 @@ fixtures:
       repo: https://github.com/smoeding/puppet-file_capability.git
   symlinks:
     nfsroot: "#{source_dir}"
-    hieradata: "#{File.join(source_dir, '../../data')}"
-    osc: "#{File.join(source_dir, '../osc')}"

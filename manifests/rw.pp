@@ -17,14 +17,13 @@ class nfsroot::rw (
 
   include nfsroot
   include nfsroot::foreman
-  include ::osc
 
   $_statetabs   = lookup('nfsroot::rw::statetabs', Array, 'unique', $statetabs)
   $_rwtabs      = lookup('nfsroot::rw::rwtabs', Hash, 'deep', $rwtabs)
 
-  $data_dir = pick($site_data_dir, $::osc::base_dir)
-  $_etc  = $::osc::etc_dir
-  $_sbin = $::osc::sbin_dir
+  $data_dir = pick($site_data_dir, '/usr/local')
+  $_etc  = "${data_dir}/etc"
+  $_sbin = "${data_dir}/sbin"
   $_osc_partition_path = "${_sbin}/osc-partition"
   $_foreman_host_param_conf_path = $nfsroot::foreman::_foreman_host_param_conf_path
   $_foreman_host_param_script_path = $nfsroot::foreman::_foreman_host_param_script_path

@@ -12,13 +12,8 @@ describe 'nfsroot::rw' do
     context "on #{os}" do
       let(:facts) do
         facts.merge({
-          :concat_basedir => '/dne',
-          :hostgroup      => 'base/owens/rw',
-          :hostgroup_parent => 'base/owens',
-          :fqdn           => 'owens-rw01.ten.osc.edu',
-          :cluster        => 'owens',
           :nfsroot        => true,
-          :nfsroot_ro     => true,
+          :nfsroot_ro     => false,
         })
       end
       let(:params) {{ }}

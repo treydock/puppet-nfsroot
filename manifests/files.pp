@@ -5,8 +5,6 @@ class nfsroot::files (
   $capabilities = {},
 ) inherits nfsroot::params {
 
-  include ::osc
-
   each($remove) |$_remove| {
     if defined(File[$_remove]) {
       File <| title == $_remove |> {
