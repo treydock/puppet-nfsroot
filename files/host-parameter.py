@@ -118,7 +118,7 @@ def get_param(args, parser, api):
                     value = p['value']
     else:
         exit = 1
-    print value
+    print str(value).lower()
     return exit
 
 def set_param(args, parser, api):
@@ -146,9 +146,9 @@ def set_param(args, parser, api):
             value = json_data['value']
     else:
         exit = 1
-    print value
+    print str(value).lower()
     if exit == 0 and args.sync_tftp:
-        sync_tftp(api=api, host=args.hostname)
+        sync_tftp(args, parser, api)
     return exit
 
 def list_params(args, parser, api):
@@ -181,9 +181,9 @@ def delete_param(args, parser, api):
                 value = json_data['name']
     else:
         exit = 1
-    print value
+    print str(value).lower()
     if exit == 0 and args.sync_tftp:
-        sync_tftp(api=api, host=args.hostname)
+        sync_tftp(args, parser, api)
     return exit
 
 def test_params(args, parser, api):
@@ -198,15 +198,15 @@ def test_params(args, parser, api):
     suite.addTest(TestHostParameter('test_delete_sync_tftp', args, parser, api))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-def sync_tftp(api, host):
-    json_data = api.send_data(path="api/hosts/%s/rebuild_config" % host, data={'only': 'TFTP'})
+def sync_tftp(args, parser, api):
+    json_data = api.send_data(path="api/hosts/%s/rebuild_config" % args.hostname, data={'only': 'TFTP'})
     if json_data:
         print "SUCCESSFUL SYNC: TFTP"
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(dest='mode')
-    parser.add_argument('--config', default='/usr/local/etc/foreman.yaml')
+    parser.add_argument('--config', default='/opt/osc/etc/foreman.yaml')
     parser_get = subparsers.add_parser('get')
     parser_set = subparsers.add_parser('set')
     parser_list = subparsers.add_parser('list')
@@ -229,6 +229,9 @@ def main():
     parser_delete.add_argument('hostname')
     parser_delete.add_argument('param')
     parser_delete.set_defaults(func=delete_param)
+    parser_sync_tftp = subparsers.add_parser('sync-tftp')
+    parser_sync_tftp.add_argument('hostname')
+    parser_sync_tftp.set_defaults(func=sync_tftp)
     parser_test.add_argument('hostname')
     parser_test.set_defaults(func=test_params)
     args = parser.parse_args()

@@ -30,6 +30,9 @@ class TestHostgroupParameter(unittest.TestCase):
         self.parser = parser
         self.api = api
 
+    def setUp(self):
+        self.args.sync_tftp = False
+
     def test_get(self):
         with captured_output() as (out, err):
             get_param(self.args, self.parser, self.api)
@@ -46,6 +49,22 @@ class TestHostgroupParameter(unittest.TestCase):
         output = out.getvalue().strip()
         self.assertEqual(output, 'false')
         # Reset back to false
+        with captured_output() as (out, err):
+            self.args.param_value = 'true'
+            set_param(self.args, self.parser, self.api)
+    def test_set_sync_tftp(self):
+        self.args.param_value = 'false'
+        self.args.sync_tftp = True
+        with captured_output() as (out, err):
+            set_param(self.args, self.parser, self.api)
+        output = out.getvalue().strip()
+        self.assertEqual(output, 'false\nSUCCESSFUL SYNC: TFTP')
+        with captured_output() as (out, err):
+            get_param(self.args, self.parser, self.api)
+        output = out.getvalue().strip()
+        self.assertEqual(output, 'false')
+        # Reset back to false
+        self.args.sync_tftp = False
         with captured_output() as (out, err):
             self.args.param_value = 'true'
             set_param(self.args, self.parser, self.api)
@@ -66,6 +85,24 @@ class TestHostgroupParameter(unittest.TestCase):
             delete_param(self.args, self.parser, self.api)
         output = out.getvalue().strip()
         self.assertEqual(output, 'test')
+        with captured_output() as (out, err):
+            get_param(self.args, self.parser, self.api)
+        output = out.getvalue().strip()
+        self.assertEqual(output, '')
+    def test_delete_sync_tftp(self):
+        self.args.param = 'test'
+        self.args.param_value = 'foobar'
+        with captured_output() as (out, err):
+            set_param(self.args, self.parser, self.api)
+        with captured_output() as (out, err):
+            get_param(self.args, self.parser, self.api)
+        output = out.getvalue().strip()
+        self.assertEqual(output, 'foobar')
+        self.args.sync_tftp = True
+        with captured_output() as (out, err):
+            delete_param(self.args, self.parser, self.api)
+        output = out.getvalue().strip()
+        self.assertEqual(output, 'test\nSUCCESSFUL SYNC: TFTP')
         with captured_output() as (out, err):
             get_param(self.args, self.parser, self.api)
         output = out.getvalue().strip()
@@ -96,7 +133,7 @@ def get_param(args, parser, api):
                 value = p['value']
     else:
         exit = 1
-    print value
+    print str(value).lower()
     return exit
 
 def set_param(args, parser, api):
@@ -124,7 +161,9 @@ def set_param(args, parser, api):
             value = json_data['value']
     else:
         exit = 1
-    print value
+    print str(value).lower()
+    if exit == 0 and args.sync_tftp:
+        sync_tftp(args, parser, api)
     return exit
 
 def list_params(args, parser, api):
@@ -138,21 +177,17 @@ def list_params(args, parser, api):
         exit = 1
     return exit
 
-#TODO: Once https://github.com/theforeman/foreman/pull/4718
-# is released, can simplify greatly
 def report_params(args, parser, api):
     exit = 0
     if args.search:
-        params = { 'search': args.search }
+        params = { 'search': args.search, 'include': ['parameters'] }
     else:
-        params = None
+        params = { 'include': ['parameters'] }
     json_data = api.get_data(path="api/hostgroups", params=params, paged=True)
     if json_data:
-        ids = [h['id'] for h in json_data]
-        for _id in ids:
-            hostgroup_data = api.get_data(path="api/hostgroups/%s" % _id)
-            print "%s:" % hostgroup_data['title']
-            for p in sorted(hostgroup_data['parameters'], key=lambda k: k['name']):
+        for hostgroup in json_data:
+            print "%s:" % hostgroup['title']
+            for p in sorted(hostgroup['parameters'], key=lambda k: k['name']):
                 print "\t%s=%s" % (p['name'], p['value'])
     else:
         exit = 1
@@ -169,7 +204,9 @@ def delete_param(args, parser, api):
                 value = json_data['name']
     else:
         exit = 1
-    print value
+    print str(value).lower()
+    if exit == 0 and args.sync_tftp:
+        sync_tftp(args, parser, api)
     return exit
 
 def test_params(args, parser, api):
@@ -178,16 +215,25 @@ def test_params(args, parser, api):
     suite = unittest.TestSuite()
     suite.addTest(TestHostgroupParameter('test_get', args, parser, api))
     suite.addTest(TestHostgroupParameter('test_set', args, parser, api))
+    suite.addTest(TestHostgroupParameter('test_set_sync_tftp', args, parser, api))
     suite.addTest(TestHostgroupParameter('test_list', args, parser, api))
     suite.addTest(TestHostgroupParameter('test_report', args, parser, api))
     suite.addTest(TestHostgroupParameter('test_delete', args, parser, api))
+    suite.addTest(TestHostgroupParameter('test_delete_sync_tftp', args, parser, api))
     unittest.TextTestRunner(verbosity=2).run(suite)
+
+
+def sync_tftp(args, parser, api):
+    _id = get_hostgroup_id(name=args.hostgroup, api=api)
+    json_data = api.send_data(path="api/hostgroups/%s/rebuild_config" % _id, data={'only': 'TFTP', 'children_hosts': True})
+    if json_data:
+        print "SUCCESSFUL SYNC: TFTP"
 
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(dest='mode')
-    parser.add_argument('--config', default='/usr/local/etc/foreman.yaml')
+    parser.add_argument('--config', default='/opt/osc/etc/foreman.yaml')
     parser_get = subparsers.add_parser('get')
     parser_set = subparsers.add_parser('set')
     parser_list = subparsers.add_parser('list')
@@ -200,6 +246,7 @@ def main():
     parser_set.add_argument('hostgroup')
     parser_set.add_argument('param')
     parser_set.add_argument('param_value')
+    parser_set.add_argument('--sync-tftp', help="Update hostgroup's TFTP files", action='store_true', default=False)
     parser_set.set_defaults(func=set_param)
     parser_list.add_argument('hostgroup')
     parser_list.set_defaults(func=list_params)
@@ -207,7 +254,11 @@ def main():
     parser_report.set_defaults(func=report_params)
     parser_delete.add_argument('hostgroup')
     parser_delete.add_argument('param')
+    parser_delete.add_argument('--sync-tftp', help="Update hostgroup's TFTP files", action='store_true', default=False)
     parser_delete.set_defaults(func=delete_param)
+    parser_sync_tftp = subparsers.add_parser('sync-tftp')
+    parser_sync_tftp.add_argument('hostgroup')
+    parser_sync_tftp.set_defaults(func=sync_tftp)
     parser_test.add_argument('hostgroup')
     parser_test.set_defaults(func=test_params)
     args = parser.parse_args()
